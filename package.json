@@ -10,6 +10,7 @@
   "scripts": {
     "compile": "./node_modules/.bin/truffle compile",
     "test": "./node_modules/.bin/truffle test ./test/flightSurety.js",
+    "migrate": "./node_modules/.bin/truffle migrate",
     "dapp": "webpack-dev-server --mode development --config webpack.config.dapp.js",
     "dapp:prod": "webpack --mode production  --config webpack.config.dapp.js",
     "server": "rm -rf ./build/server && webpack --config webpack.config.server.js"
