@@ -1,6 +1,6 @@
-pragma solidity ^0.4.25;
+pragma solidity 0.5.8;
 
-import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 
 contract FlightSuretyData {
     using SafeMath for uint256;
