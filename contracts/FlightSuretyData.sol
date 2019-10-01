@@ -13,10 +13,12 @@ contract FlightSuretyData {
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
     mapping (address => bool) private authorizedCallers;
 
+    uint256 private constant neededFunding = 10 ether;
     struct airline {
-        bool isFunded;
+        bool isRegistered;
+        uint256 fundingAmount;
+        bool isFundingCompleted;
     }
-
     mapping(address => airline) airlines;
 
     /********************************************************************************************/
@@ -30,7 +32,11 @@ contract FlightSuretyData {
     */
     constructor(address firstAirline) public requireValidAddress(firstAirline) {
         contractOwner = msg.sender;
-        airlines[firstAirline] = airline(false);
+        airlines[firstAirline] = airline({
+            isRegistered: true,
+            fundingAmount: 0 ether,
+            isFundingCompleted: false
+        });
     }
 
     /********************************************************************************************/
@@ -68,8 +74,13 @@ contract FlightSuretyData {
         _;
     }
 
+    modifier requireRegisteredAirline(address airlineAddress) {
+        require(airlines[airlineAddress].isRegistered, "Only registered airline can proceed");
+        _;
+    }
+
     modifier requireQualifiedAirline(address airlineAddress) {
-        require(airlines[airlineAddress].isFunded, "Only Funded airline can register new airline");
+        require(airlines[airlineAddress].isFundingCompleted, "Only funded airline can proceed");
         _;
     }
 
@@ -85,7 +96,6 @@ contract FlightSuretyData {
     function isOperational() public view returns(bool) {
         return operational;
     }
-
 
     /**
     * @dev Sets contract operations on/off
@@ -114,11 +124,26 @@ contract FlightSuretyData {
         requireAuthorizedCaller
         requireQualifiedAirline(oldAirline)
     {
-        airlines[newAirline] = airline(false);
+        airlines[newAirline] = airline({
+            isRegistered: true,
+            fundingAmount: 0 ether,
+            isFundingCompleted: false
+        });
     }
 
-    function isAirline(address airlineAddress) external view returns(bool) {
-        return airlines[airlineAddress].isFunded;
+    function provideFunding(address airlineAddress) external payable
+        requireIsOperational
+        requireAuthorizedCaller
+        requireRegisteredAirline(airlineAddress)
+    {
+        airline storage target = airlines[airlineAddress];
+        target.fundingAmount += msg.value;
+        if (target.fundingAmount >= 10 ether) target.isFundingCompleted = true;
+    }
+
+    function isAirline(address airlineAddress) external view returns(bool, uint256, bool) {
+        airline storage target = airlines[airlineAddress];
+        return (target.isRegistered, target.fundingAmount, target.isFundingCompleted);
     }
 
    /**

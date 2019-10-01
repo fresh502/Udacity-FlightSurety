@@ -9,6 +9,7 @@ import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 contract FlightSurteyData {
     function registerAirline (address from, address to) external;
     function checkAirlineRegistered(address airline) external returns(bool);
+    function provideFunding(address airline) external payable;
 }
 
 /************************************************** */
@@ -40,7 +41,6 @@ contract FlightSuretyApp {
         address airline;
     }
     mapping(bytes32 => Flight) private flights;
-
 
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -104,7 +104,9 @@ contract FlightSuretyApp {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
-
+    function provideFunding() external payable {
+        flightSurteyData.provideFunding.value(msg.value)(msg.sender);
+    }
    /**
     * @dev Add an airline to the registration queue
     *
