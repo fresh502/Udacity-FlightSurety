@@ -11,6 +11,13 @@ contract FlightSuretyData {
 
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
+    mapping (address => bool) private authorizedCallers;
+
+    struct airline {
+        bool isFunded;
+    }
+
+    mapping(address => airline) airlines;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -21,12 +28,9 @@ contract FlightSuretyData {
     * @dev Constructor
     *      The deploying account becomes contractOwner
     */
-    constructor
-                                (
-                                )
-                                public
-    {
+    constructor(address firstAirline) public requireValidAddress(firstAirline) {
         contractOwner = msg.sender;
+        airlines[firstAirline] = airline(false);
     }
 
     /********************************************************************************************/
@@ -41,8 +45,7 @@ contract FlightSuretyData {
     *      This is used on all state changing functions to pause the contract in
     *      the event there is an issue that needs to be fixed
     */
-    modifier requireIsOperational()
-    {
+    modifier requireIsOperational() {
         require(operational, "Contract is currently not operational");
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
@@ -50,9 +53,23 @@ contract FlightSuretyData {
     /**
     * @dev Modifier that requires the "ContractOwner" account to be the function caller
     */
-    modifier requireContractOwner()
-    {
+    modifier requireContractOwner() {
         require(msg.sender == contractOwner, "Caller is not contract owner");
+        _;
+    }
+
+    modifier requireValidAddress(address target) {
+        require(target != address(0), "Invalid address");
+        _;
+    }
+
+    modifier requireAuthorizedCaller() {
+        require(authorizedCallers[msg.sender], "Only authrized caller can call");
+        _;
+    }
+
+    modifier requireQualifiedAirline(address airlineAddress) {
+        require(airlines[airlineAddress].isFunded, "Only Funded airline can register new airline");
         _;
     }
 
@@ -65,11 +82,7 @@ contract FlightSuretyData {
     *
     * @return A bool that is the current operating status
     */
-    function isOperational()
-                            public
-                            view
-                            returns(bool)
-    {
+    function isOperational() public view returns(bool) {
         return operational;
     }
 
@@ -79,13 +92,7 @@ contract FlightSuretyData {
     *
     * When operational mode is disabled, all write transactions except for this one will fail
     */
-    function setOperatingStatus
-                            (
-                                bool mode
-                            )
-                            external
-                            requireContractOwner
-    {
+    function setOperatingStatus(bool mode) external requireContractOwner {
         operational = mode;
     }
 
@@ -93,19 +100,26 @@ contract FlightSuretyData {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
+    function authorizeCaller(address appAddress) external requireContractOwner requireIsOperational requireValidAddress(appAddress) {
+        authorizedCallers[appAddress] = true;
+    }
+
    /**
     * @dev Add an airline to the registration queue
     *      Can only be called from FlightSuretyApp contract
     *
     */
-    function registerAirline
-                            (
-                            )
-                            external
-                            pure
+    function registerAirline(address oldAirline, address newAirline) external
+        requireIsOperational
+        requireAuthorizedCaller
+        requireQualifiedAirline(oldAirline)
     {
+        airlines[newAirline] = airline(false);
     }
 
+    function isAirline(address airlineAddress) external view returns(bool) {
+        return airlines[airlineAddress].isFunded;
+    }
 
    /**
     * @dev Buy insurance for a flight
@@ -158,7 +172,7 @@ contract FlightSuretyData {
 
     function getFlightKey
                         (
-                            address airline,
+                            address airlineAddress,
                             string memory flight,
                             uint256 timestamp
                         )
@@ -166,7 +180,7 @@ contract FlightSuretyData {
                         pure
                         returns(bytes32)
     {
-        return keccak256(abi.encodePacked(airline, flight, timestamp));
+        return keccak256(abi.encodePacked(airlineAddress, flight, timestamp));
     }
 
     /**

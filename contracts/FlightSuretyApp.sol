@@ -6,10 +6,17 @@ pragma solidity 0.5.8;
 
 import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 
+contract FlightSurteyData {
+    function registerAirline (address from, address to) external;
+    function checkAirlineRegistered(address airline) external returns(bool);
+}
+
 /************************************************** */
 /* FlightSurety Smart Contract                      */
 /************************************************** */
 contract FlightSuretyApp {
+    FlightSurteyData flightSurteyData;
+
     using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
 
     /********************************************************************************************/
@@ -63,6 +70,11 @@ contract FlightSuretyApp {
         _;
     }
 
+    modifier requireValidAddress(address target) {
+        require(target != address(0), "Invalid address");
+        _;
+    }
+
     /********************************************************************************************/
     /*                                       CONSTRUCTOR                                        */
     /********************************************************************************************/
@@ -71,12 +83,9 @@ contract FlightSuretyApp {
     * @dev Contract constructor
     *
     */
-    constructor
-                                (
-                                )
-                                public
-    {
+    constructor (address dataContract) public requireValidAddress(dataContract) {
         contractOwner = msg.sender;
+        flightSurteyData = FlightSurteyData(dataContract);
     }
 
     /********************************************************************************************/
@@ -100,14 +109,12 @@ contract FlightSuretyApp {
     * @dev Add an airline to the registration queue
     *
     */
-    function registerAirline
-                            (
-                            )
-                            external
-                            pure
-                            returns(bool success, uint256 votes)
+    function registerAirline(address airline) external
+        requireValidAddress(airline)
+        returns(bool success, uint256 votes)
     {
-        return (success, 0);
+        flightSurteyData.registerAirline(msg.sender, airline);
+        return (true, 0);
     }
 
 
