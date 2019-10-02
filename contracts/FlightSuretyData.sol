@@ -25,6 +25,15 @@ contract FlightSuretyData {
     uint256 private constant notNeededConsensuAirlinesCount = 4;
     uint256 private registeredAirlinesCount = 0;
 
+    struct Flight {
+        bool isRegistered;
+        uint8 statusCode;
+        uint256 timestamp;
+        address airline;
+        bool canBuyInsurance;
+    }
+    mapping(bytes32 => Flight) private flights;
+
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
@@ -179,11 +188,32 @@ contract FlightSuretyData {
         return target.fundingAmount;
     }
 
-    function isAirline(address airlineAddress) external view returns(bool, uint256, uint256, uint256) {
+    function getAirline(address airlineAddress) external view returns(bool, uint256, uint256, uint256) {
         airline storage target = airlines[airlineAddress];
         return (target.isRegistered, target.neededVotingCount, target.votingCount, target.fundingAmount);
     }
 
+    function registerFlight(address airlineAddress, string calldata flight, uint256 timestamp) external
+        requireIsOperational
+        requireAuthorizedCaller
+        requireFundingCompletedAirline(airlineAddress)
+    {
+        bytes32 key = getFlightKey(airlineAddress, flight, timestamp);
+        flights[key] = Flight({
+            isRegistered: true,
+            statusCode: 0,
+            timestamp: timestamp,
+            airline: airlineAddress,
+            canBuyInsurance: true
+        });
+    }
+
+    function getFlight(address airlineAddress, string calldata flight, uint256 timestamp)
+        external view returns(bool isRegisered, uint8 statusCode, bool canBuyInsurance) {
+        bytes32 key = getFlightKey(airlineAddress, flight, timestamp);
+        Flight storage target = flights[key];
+        return (target.isRegistered, target.statusCode, target.canBuyInsurance);
+    }
    /**
     * @dev Buy insurance for a flight
     *

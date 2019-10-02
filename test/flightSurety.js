@@ -13,6 +13,8 @@ contract('Flight Surety Tests', async (accounts) => {
 
     const [, , secondAirline, thirdAirline, fourthAirline, fifthAirline, firstPassenger] = accounts;
 
+    const STATUS_CODE_UNKNOWN = 0;
+
     it(`(multiparty) has correct initial isOperational() value`, async function () {
         const status = await flightSuretyData.isOperational.call();
         assert.equal(status, true, "Incorrect initial operating status value");
@@ -61,7 +63,7 @@ contract('Flight Surety Tests', async (accounts) => {
         } catch(e) {
             if (!e.message.includes('Only funding completed airline can proceed.')) throw e;
         }
-        const { 0: isRegistered } = await flightSuretyData.isAirline.call(secondAirline);
+        const { 0: isRegistered } = await flightSuretyData.getAirline.call(secondAirline);
 
         assert.equal(isRegistered, false, "Airline should not be able to register another airline if it hasn't provided funding");
     });
@@ -70,7 +72,7 @@ contract('Flight Surety Tests', async (accounts) => {
         await flightSuretyApp.provideFunding({ from: firstAirline, value: weiMultiple * 10 });
 
         await flightSuretyApp.registerAirline(secondAirline, { from: firstAirline });
-        const { 0: isRegistered } = await flightSuretyData.isAirline.call(secondAirline);
+        const { 0: isRegistered } = await flightSuretyData.getAirline.call(secondAirline);
 
         assert.equal(isRegistered, true, "New airline should be registerd");
     });
@@ -79,7 +81,7 @@ contract('Flight Surety Tests', async (accounts) => {
         let isRegistered, neededVotingCount, fundingAmount;
         await flightSuretyApp.provideFunding({ from: secondAirline, value: weiMultiple * 10 });
         await flightSuretyApp.registerAirline(thirdAirline, { from: secondAirline });
-        ({ 0: isRegistered, 1: neededVotingCount, 3: fundingAmount } = await flightSuretyData.isAirline.call(thirdAirline));
+        ({ 0: isRegistered, 1: neededVotingCount, 3: fundingAmount } = await flightSuretyData.getAirline.call(thirdAirline));
 
         assert.equal(isRegistered, true, "New airline should be registerd");
         assert.equal(neededVotingCount, 0, "New airline does not need voting");
@@ -87,7 +89,7 @@ contract('Flight Surety Tests', async (accounts) => {
 
         await flightSuretyApp.provideFunding({ from: thirdAirline, value: weiMultiple * 10 });
         await flightSuretyApp.registerAirline(fourthAirline, { from: thirdAirline });
-        ({ 0: isRegistered, 1: neededVotingCount, 3: fundingAmount } = await flightSuretyData.isAirline.call(fourthAirline));
+        ({ 0: isRegistered, 1: neededVotingCount, 3: fundingAmount } = await flightSuretyData.getAirline.call(fourthAirline));
 
         assert.equal(isRegistered, true, "New airline should be registerd");
         assert.equal(neededVotingCount, 0, "New airline does not need voting");
@@ -97,12 +99,10 @@ contract('Flight Surety Tests', async (accounts) => {
     });
 
     it('(airline) fifth airline cannot provide funding immediately until getting multi-party consensus', async () => {
-        const [, , , , fourthAirline, fifthAirline] = accounts;
-
         await flightSuretyApp.registerAirline(fifthAirline, { from: fourthAirline });
 
         const { 0: isRegistered, 1: neededVotingCount, 2: votingCount, 3: fundingAmount } =
-            await flightSuretyData.isAirline.call(fifthAirline);
+            await flightSuretyData.getAirline.call(fifthAirline);
 
         assert.equal(isRegistered, true, "New airline should be registerd");
         assert.equal(neededVotingCount, 2, "New airline requires multi-party consensus of 50% of registered airlines");
@@ -138,11 +138,24 @@ contract('Flight Surety Tests', async (accounts) => {
         const [, , , , fourthAirline, fifthAirline] = accounts;
 
         await flightSuretyApp.voteForAirline(fifthAirline, { from: fourthAirline });
-        const { 1: neededVotingCount, 2: votingCount } = await flightSuretyData.isAirline.call(fifthAirline);
+        const { 1: neededVotingCount, 2: votingCount } = await flightSuretyData.getAirline.call(fifthAirline);
 
         assert.equal(neededVotingCount.toNumber(), votingCount.toNumber(), "Fifth airline should olready get multi-party consensus");
 
         await flightSuretyApp.provideFunding({ from: fifthAirline, value: weiMultiple * 10 });
+    })
+
+    it('(flight) funding completed airline can regsiter flight', async () => {
+        const flight = 'ND1309'
+        const timestamp = Math.floor(Date.now() / 1000);
+
+        await flightSuretyApp.registerFlight(flight, timestamp, { from: firstAirline });
+        const { 0: isRegistered, 1: statusCode, 2: canBuyInsurance} =
+            await flightSuretyData.getFlight(firstAirline, flight, timestamp);
+
+        assert.equal(isRegistered, true, "Flight not registered");
+        assert.equal(statusCode, STATUS_CODE_UNKNOWN, "Flight status should be unknown");
+        assert.equal(canBuyInsurance, true, "Flight insurance can be purchased");
     })
 
 });

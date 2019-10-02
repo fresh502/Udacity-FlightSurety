@@ -10,6 +10,7 @@ contract FlightSurteyData {
     function registerAirline(address from, address to) external returns(uint256);
     function voteForAirline(address voter, address candidate) external;
     function provideFunding(address airline) external payable returns(uint256);
+    function registerFlight(address airline, string calldata flight, uint256 timestamp) external;
 }
 
 /************************************************** */
@@ -33,14 +34,6 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
     address private contractOwner;          // Account used to deploy contract
-
-    struct Flight {
-        bool isRegistered;
-        uint8 statusCode;
-        uint256 updatedTimestamp;
-        address airline;
-    }
-    mapping(bytes32 => Flight) private flights;
 
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -125,13 +118,8 @@ contract FlightSuretyApp {
     * @dev Register a future flight for insuring.
     *
     */
-    function registerFlight
-                                (
-                                )
-                                external
-                                pure
-    {
-
+    function registerFlight(string calldata flight, uint256 timestamp) external {
+        flightSurteyData.registerFlight(msg.sender, flight, timestamp);
     }
 
    /**
