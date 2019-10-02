@@ -13,13 +13,17 @@ contract FlightSuretyData {
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
     mapping (address => bool) private authorizedCallers;
 
-    uint256 private constant neededFunding = 10 ether;
+    uint256 private constant neededFundingAmountForAirline = 10 ether;
     struct airline {
         bool isRegistered;
+        uint256 neededVotingCount;
+        uint256 votingCount;
+        mapping(address => bool) voters;
         uint256 fundingAmount;
-        bool isFundingCompleted;
     }
     mapping(address => airline) airlines;
+    uint256 private constant notNeededConsensuAirlinesCount = 4;
+    uint256 private registeredAirlinesCount = 0;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -32,10 +36,13 @@ contract FlightSuretyData {
     */
     constructor(address firstAirline) public requireValidAddress(firstAirline) {
         contractOwner = msg.sender;
+
+        registeredAirlinesCount = registeredAirlinesCount.add(1);
         airlines[firstAirline] = airline({
             isRegistered: true,
-            fundingAmount: 0 ether,
-            isFundingCompleted: false
+            neededVotingCount: 0,
+            votingCount: 0,
+            fundingAmount: 0 ether
         });
     }
 
@@ -74,13 +81,16 @@ contract FlightSuretyData {
         _;
     }
 
-    modifier requireRegisteredAirline(address airlineAddress) {
-        require(airlines[airlineAddress].isRegistered, "Only registered airline can proceed");
+    modifier requireVotingCompletedAirline(address airlineAddress) {
+        airline storage target = airlines[airlineAddress];
+        require(target.isRegistered, "Only registered airline can proceed");
+        require(target.votingCount >= target.neededVotingCount, "Only voting completed airline can proceed");
         _;
     }
 
-    modifier requireQualifiedAirline(address airlineAddress) {
-        require(airlines[airlineAddress].isFundingCompleted, "Only funded airline can proceed");
+    modifier requireFundingCompletedAirline(address airlineAddress) {
+        require(airlines[airlineAddress].fundingAmount >= neededFundingAmountForAirline,
+            "Only funding completed airline can proceed");
         _;
     }
 
@@ -122,28 +132,56 @@ contract FlightSuretyData {
     function registerAirline(address oldAirline, address newAirline) external
         requireIsOperational
         requireAuthorizedCaller
-        requireQualifiedAirline(oldAirline)
+        requireFundingCompletedAirline(oldAirline)
+        returns(uint256)
     {
-        airlines[newAirline] = airline({
-            isRegistered: true,
-            fundingAmount: 0 ether,
-            isFundingCompleted: false
-        });
+        registeredAirlinesCount = registeredAirlinesCount.add(1);
+
+        if (registeredAirlinesCount <= notNeededConsensuAirlinesCount) {
+            airlines[newAirline] = airline({
+                isRegistered: true,
+                neededVotingCount: 0,
+                votingCount: 0,
+                fundingAmount: 0 ether
+            });
+        } else {
+            airlines[newAirline] = airline({
+                isRegistered: true,
+                neededVotingCount: registeredAirlinesCount.div(2),
+                votingCount: 0,
+                fundingAmount: 0 ether
+            });
+        }
+
+        return airlines[newAirline].neededVotingCount;
+    }
+
+    function voteForAirline(address voter, address candidate) external
+        requireIsOperational
+        requireAuthorizedCaller
+        requireFundingCompletedAirline(voter)
+    {
+        airline storage target = airlines[candidate];
+        require(!target.voters[voter], "This voter already voted for candidate");
+
+        target.voters[voter] = true;
+        target.votingCount = target.votingCount.add(1);
     }
 
     function provideFunding(address airlineAddress) external payable
         requireIsOperational
         requireAuthorizedCaller
-        requireRegisteredAirline(airlineAddress)
+        requireVotingCompletedAirline(airlineAddress)
+        returns(uint256 fundingAmount)
     {
         airline storage target = airlines[airlineAddress];
-        target.fundingAmount += msg.value;
-        if (target.fundingAmount >= 10 ether) target.isFundingCompleted = true;
+        target.fundingAmount = target.fundingAmount.add(msg.value);
+        return target.fundingAmount;
     }
 
-    function isAirline(address airlineAddress) external view returns(bool, uint256, bool) {
+    function isAirline(address airlineAddress) external view returns(bool, uint256, uint256, uint256) {
         airline storage target = airlines[airlineAddress];
-        return (target.isRegistered, target.fundingAmount, target.isFundingCompleted);
+        return (target.isRegistered, target.neededVotingCount, target.votingCount, target.fundingAmount);
     }
 
    /**

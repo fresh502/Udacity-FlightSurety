@@ -7,9 +7,9 @@ pragma solidity 0.5.8;
 import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 
 contract FlightSurteyData {
-    function registerAirline (address from, address to) external;
-    function checkAirlineRegistered(address airline) external returns(bool);
-    function provideFunding(address airline) external payable;
+    function registerAirline(address from, address to) external returns(uint256);
+    function voteForAirline(address voter, address candidate) external;
+    function provideFunding(address airline) external payable returns(uint256);
 }
 
 /************************************************** */
@@ -104,21 +104,22 @@ contract FlightSuretyApp {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
-    function provideFunding() external payable {
-        flightSurteyData.provideFunding.value(msg.value)(msg.sender);
+    function provideFunding() external payable returns(uint256 fundingAmount) {
+        fundingAmount = flightSurteyData.provideFunding.value(msg.value)(msg.sender);
     }
+
    /**
     * @dev Add an airline to the registration queue
     *
-    */
-    function registerAirline(address airline) external
-        requireValidAddress(airline)
-        returns(bool success, uint256 votes)
-    {
-        flightSurteyData.registerAirline(msg.sender, airline);
-        return (true, 0);
+*/
+    function registerAirline(address airline) external requireValidAddress(airline) returns(uint256 neededVotingCount) {
+        neededVotingCount = flightSurteyData.registerAirline(msg.sender, airline);
+        return neededVotingCount;
     }
 
+    function voteForAirline(address airline) external requireValidAddress(airline) {
+        flightSurteyData.voteForAirline(msg.sender, airline);
+    }
 
    /**
     * @dev Register a future flight for insuring.
