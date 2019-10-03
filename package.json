@@ -13,7 +13,7 @@
     "migrate": "./node_modules/.bin/truffle migrate",
     "dapp": "webpack-dev-server --mode development --config webpack.config.dapp.js",
     "dapp:prod": "webpack --mode production  --config webpack.config.dapp.js",
-    "oracles": "rm -rf ./build/server && webpack --config webpack.config.server.js"
+    "server": "rm -rf ./build/server && webpack --config webpack.config.server.js"
   },
   "author": "Nik Kalyani <nik@kalyani.com> https://www.kalyani.com",
   "devDependencies": {
@@ -40,7 +40,7 @@
     "style-loader": "^0.23.1",
     "superstatic": "6.0.3",
     "truffle": "^5.0.38",
-    "web3": "1.0.0-beta.37",
+    "web3": "^1.2.1",
     "webpack": "^4.41.0",
     "webpack-cli": "^3.3.9",
     "webpack-dev-server": "^3.8.1",
