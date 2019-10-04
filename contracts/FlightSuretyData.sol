@@ -34,6 +34,12 @@ contract FlightSuretyData {
     }
     mapping(bytes32 => Flight) private flights;
 
+    struct FlightInsurance {
+        bool isOpen;
+        mapping(address => uint256) passengerPayment;
+    }
+    mapping(bytes32 => FlightInsurance) flightInsurances;
+
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
@@ -129,7 +135,11 @@ contract FlightSuretyData {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
-    function authorizeCaller(address appAddress) external requireContractOwner requireIsOperational requireValidAddress(appAddress) {
+    function authorizeCaller(address appAddress) external
+        requireContractOwner
+        requireIsOperational
+        requireValidAddress(appAddress)
+    {
         authorizedCallers[appAddress] = true;
     }
 
@@ -218,13 +228,16 @@ contract FlightSuretyData {
     * @dev Buy insurance for a flight
     *
     */
-    function buy
-                            (
-                            )
-                            external
-                            payable
+    function purchaseInsurance(address passengerAddress, address airlineAddress, string calldata flight, uint256 timestamp)
+        external payable
+        requireIsOperational
+        requireAuthorizedCaller
     {
-
+        bytes32 key = getFlightKey(airlineAddress, flight, timestamp);
+        flightInsurances[key] = FlightInsurance({
+            isOpen: true
+        });
+        flightInsurances[key].passengerPayment[passengerAddress] = msg.value;
     }
 
     /**
@@ -263,16 +276,7 @@ contract FlightSuretyData {
     {
     }
 
-    function getFlightKey
-                        (
-                            address airlineAddress,
-                            string memory flight,
-                            uint256 timestamp
-                        )
-                        internal
-                        pure
-                        returns(bytes32)
-    {
+    function getFlightKey(address airlineAddress, string memory flight, uint256 timestamp) internal pure returns(bytes32) {
         return keccak256(abi.encodePacked(airlineAddress, flight, timestamp));
     }
 

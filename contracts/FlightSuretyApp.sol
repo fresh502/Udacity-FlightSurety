@@ -11,6 +11,7 @@ contract FlightSurteyData {
     function voteForAirline(address voter, address candidate) external;
     function provideFunding(address airline) external payable returns(uint256);
     function registerFlight(address airline, string calldata flight, uint256 timestamp) external;
+    function purchaseInsurance(address passenger, address airline, string calldata flight, uint256 timestmap) external payable;
 }
 
 /************************************************** */
@@ -90,7 +91,7 @@ contract FlightSuretyApp {
                             pure
                             returns(bool)
     {
-        return true;  // Modify to call data contract's status
+        return false;  // Modify to call data contract's status
     }
 
     /********************************************************************************************/
@@ -120,6 +121,10 @@ contract FlightSuretyApp {
     */
     function registerFlight(string calldata flight, uint256 timestamp) external {
         flightSurteyData.registerFlight(msg.sender, flight, timestamp);
+    }
+
+    function purchaseInsurance(address airline, string calldata flight, uint256 timestamp) external payable {
+        flightSurteyData.purchaseInsurance.value(msg.value)(msg.sender, airline, flight, timestamp);
     }
 
    /**

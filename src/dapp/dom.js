@@ -16,6 +16,8 @@ export default class DOM {
     static span = (...args) => DOM.makeElement(`span`, ...args);
     static img = (...args) => DOM.makeElement(`img`, ...args);
     static td = (...args) => DOM.makeElement(`td`, ...args);
+    static select = (...args) => DOM.makeElement('select', ...args);
+    static option = (...args) => DOM.makeElement('option', ...args);
     static attributeExceptions = [
       `role`,
     ];
@@ -67,7 +69,7 @@ export default class DOM {
         DOM.appendText(el, textOrPropsOrChild);
       } else if (typeof textOrPropsOrChild === `object`) {
         Object.keys(textOrPropsOrChild).forEach((propName) => {
-          if (propName in el || attributeExceptions.includes(propName)) {
+          if (propName in el || DOM.attributeExceptions.includes(propName)) {
             const value = textOrPropsOrChild[propName];
     
             if (propName === `style`) {
