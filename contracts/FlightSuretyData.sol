@@ -34,9 +34,13 @@ contract FlightSuretyData {
     }
     mapping(bytes32 => Flight) private flights;
 
+    struct PassengerPayment {
+        bool isAlreadyPurchased;
+        uint256 amount;
+    }
     struct FlightInsurance {
-        bool isOpen;
-        mapping(address => uint256) passengerPayment;
+        bool haveHistory;
+        mapping(address => PassengerPayment) passengerPaymentHistory;
     }
     mapping(bytes32 => FlightInsurance) flightInsurances;
 
@@ -234,10 +238,18 @@ contract FlightSuretyData {
         requireAuthorizedCaller
     {
         bytes32 key = getFlightKey(airlineAddress, flight, timestamp);
-        flightInsurances[key] = FlightInsurance({
-            isOpen: true
+        if (flightInsurances[key].haveHistory) {
+            require(!flightInsurances[key].passengerPaymentHistory[passengerAddress].isAlreadyPurchased,
+                "This passenger alreadey purchase this flight insurance");
+        } else {
+            flightInsurances[key] = FlightInsurance({
+                haveHistory: true
+            });
+        }
+        flightInsurances[key].passengerPaymentHistory[passengerAddress] = PassengerPayment({
+            isAlreadyPurchased: true,
+            amount: msg.value
         });
-        flightInsurances[key].passengerPayment[passengerAddress] = msg.value;
     }
 
     /**

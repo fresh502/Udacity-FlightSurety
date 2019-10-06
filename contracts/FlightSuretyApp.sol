@@ -69,6 +69,11 @@ contract FlightSuretyApp {
         _;
     }
 
+    modifier requireInsuranceAmountValid() {
+        require(msg.value <= 1 ether, "Passenger pay up to 1 ether");
+        _;
+    }
+
     /********************************************************************************************/
     /*                                       CONSTRUCTOR                                        */
     /********************************************************************************************/
@@ -123,7 +128,9 @@ contract FlightSuretyApp {
         flightSurteyData.registerFlight(msg.sender, flight, timestamp);
     }
 
-    function purchaseInsurance(address airline, string calldata flight, uint256 timestamp) external payable {
+    function purchaseInsurance(address airline, string calldata flight, uint256 timestamp) external payable
+        requireInsuranceAmountValid
+    {
         flightSurteyData.purchaseInsurance.value(msg.value)(msg.sender, airline, flight, timestamp);
     }
 

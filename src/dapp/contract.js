@@ -40,18 +40,22 @@ export default class Contract {
             .call({ from: self.owner }, callback);
     }
 
-    purchaseInsurance(flight, timestamp, amount, callback) {
+    purchaseInsurance(flight, timestamp, amount) {
         const self = this;
         const payload = {
             airline: self.airlines[0],
             flight: flight,
-            timestamp: timestamp
+            timestamp: timestamp,
+            amount
         } 
-        self.flightSuretyApp.methods
-            .purchaseInsurance(payload.airline, payload.flight, payload.timestamp)
-            .send({ from: self.owner, value: amount }, (error) => {
-                callback(error);
+        let gas;
+        return self.flightSuretyApp.methods.purchaseInsurance(payload.airline, payload.flight, payload.timestamp).estimateGas({ from: self.owner, value: this.web3.utils.toWei(payload.amount, 'ether') })
+            .then(ret => { 
+                gas = ret;
+                return self.flightSuretyApp.methods.purchaseInsurance(payload.airline, payload.flight, payload.timestamp)
+                    .send({ from: self.owner, value: this.web3.utils.toWei(payload.amount, 'ether'), gas })
             })
+            .then(() => payload);
     }
 
     fetchFlightStatus(flight, callback) {

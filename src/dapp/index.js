@@ -25,11 +25,15 @@ import { flights } from './config.json';
             const timestamp = new Date(flightDate).getTime();
             const amount = DOM.elid('insurance-amount').value;
             if (!amount) return alert('Input amount');
-
-            contract.purchaseInsurance(flight, timestamp, amount, (error) => {
-                console.error(error);
-            });
-        })
+            if (amount > 1) return alert('Pay up to 1 ether');
+            
+            contract.purchaseInsurance(flight, timestamp, amount)
+                .then(result => displayFlightInsurance('Flight Insurance Result', { value: `${result.flight} ${result.timestamp}: ${result.amount} ether` }))
+                .catch(error => {
+                    alert('Cannot purchase insurance twice!!');
+                    console.error(error)
+                });
+        });
 
         // User-submitted transaction
         DOM.elid('submit-oracle').addEventListener('click', () => {
@@ -68,6 +72,16 @@ function displayFlight(title, description, results) {
     results.map((result) => {
         row.appendChild(DOM.option({ value: result.value }, `${result.index}. ${result.value}` ));
     })
+    displayDiv.append(section);
+}
+
+function displayFlightInsurance(title, result) {
+    const displayDiv = DOM.elid("flight-insurance-list");
+    const section = DOM.section();
+    section.appendChild(DOM.h2(title));
+    const row = section.appendChild(DOM.div({className:'row'}));
+    row.appendChild(DOM.div({className: 'col-sm-12 field-value'}, String(result.value)));
+    section.appendChild(row);
     displayDiv.append(section);
 }
 
