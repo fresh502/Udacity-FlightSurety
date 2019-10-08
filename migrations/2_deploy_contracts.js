@@ -5,9 +5,10 @@ const FlightSuretyData = artifacts.require("FlightSuretyData");
 const fs = require('fs');
 const BigNumber = require('bignumber.js');
 
-module.exports = async (deployer, network) => {
+module.exports = async (deployer, network, accounts) => {
     if (network === 'development') {
-        const firstAirline = '0xf17f52151EbEF6C7334FAD080c5704D77216b732';
+        // const firstAirline = '0xf17f52151EbEF6C7334FAD080c5704D77216b732';
+        const firstAirline = accounts[0];
         const fundingAmount = (new BigNumber(10)).pow(19);
         const flights = [
             {

@@ -20,6 +20,7 @@ To run truffle tests:
 
 To use the dapp:
 
+`ganache-cli -m "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat" -a 30`
 `truffle migrate`
 `npm run dapp`
 
