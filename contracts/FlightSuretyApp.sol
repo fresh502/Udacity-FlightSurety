@@ -6,19 +6,21 @@ pragma solidity 0.5.8;
 
 import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 
-contract FlightSurteyData {
+contract FlightSuretyData {
+    function isOperational() external view returns(bool);
     function registerAirline(address from, address to) external returns(uint256);
     function voteForAirline(address voter, address candidate) external;
     function provideFunding(address airline) external payable returns(uint256);
     function registerFlight(address airline, string calldata flight, uint256 timestamp) external;
     function purchaseInsurance(address passenger, address airline, string calldata flight, uint256 timestmap) external payable;
+    function processFlightStatus(address airline, string calldata flight, uint256 timestamp, uint8 statusCode) external;
 }
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
 /************************************************** */
 contract FlightSuretyApp {
-    FlightSurteyData flightSurteyData;
+    FlightSuretyData flightSuretyData;
 
     using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
 
@@ -48,18 +50,15 @@ contract FlightSuretyApp {
     *      This is used on all state changing functions to pause the contract in
     *      the event there is an issue that needs to be fixed
     */
-    modifier requireIsOperational()
-    {
-         // Modify to call data contract's status
-        require(true, "Contract is currently not operational");
+    modifier requireIsOperational() {
+        require(flightSuretyData.isOperational(), "Contract is currently not operational");
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
 
     /**
     * @dev Modifier that requires the "ContractOwner" account to be the function caller
     */
-    modifier requireContractOwner()
-    {
+    modifier requireContractOwner() {
         require(msg.sender == contractOwner, "Caller is not contract owner");
         _;
     }
@@ -84,19 +83,15 @@ contract FlightSuretyApp {
     */
     constructor (address dataContract) public requireValidAddress(dataContract) {
         contractOwner = msg.sender;
-        flightSurteyData = FlightSurteyData(dataContract);
+        flightSuretyData = FlightSuretyData(dataContract);
     }
 
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
 
-    function isOperational()
-                            public
-                            pure
-                            returns(bool)
-    {
-        return false;  // Modify to call data contract's status
+    function isOperational() external view returns(bool) {
+        return flightSuretyData.isOperational();
     }
 
     /********************************************************************************************/
@@ -104,7 +99,7 @@ contract FlightSuretyApp {
     /********************************************************************************************/
 
     function provideFunding() external payable returns(uint256 fundingAmount) {
-        fundingAmount = flightSurteyData.provideFunding.value(msg.value)(msg.sender);
+        fundingAmount = flightSuretyData.provideFunding.value(msg.value)(msg.sender);
     }
 
    /**
@@ -112,12 +107,12 @@ contract FlightSuretyApp {
     *
 */
     function registerAirline(address airline) external requireValidAddress(airline) returns(uint256 neededVotingCount) {
-        neededVotingCount = flightSurteyData.registerAirline(msg.sender, airline);
+        neededVotingCount = flightSuretyData.registerAirline(msg.sender, airline);
         return neededVotingCount;
     }
 
     function voteForAirline(address airline) external requireValidAddress(airline) {
-        flightSurteyData.voteForAirline(msg.sender, airline);
+        flightSuretyData.voteForAirline(msg.sender, airline);
     }
 
    /**
@@ -125,29 +120,21 @@ contract FlightSuretyApp {
     *
     */
     function registerFlight(string calldata flight, uint256 timestamp) external {
-        flightSurteyData.registerFlight(msg.sender, flight, timestamp);
+        flightSuretyData.registerFlight(msg.sender, flight, timestamp);
     }
 
     function purchaseInsurance(address airline, string calldata flight, uint256 timestamp) external payable
         requireInsuranceAmountValid
     {
-        flightSurteyData.purchaseInsurance.value(msg.value)(msg.sender, airline, flight, timestamp);
+        flightSuretyData.purchaseInsurance.value(msg.value)(msg.sender, airline, flight, timestamp);
     }
 
    /**
     * @dev Called after oracle has updated flight status
     *
     */
-    function processFlightStatus
-                                (
-                                    address airline,
-                                    string memory flight,
-                                    uint256 timestamp,
-                                    uint8 statusCode
-                                )
-                                internal
-                                pure
-    {
+    function processFlightStatus(address airline, string memory flight, uint256 timestamp, uint8 statusCode) internal {
+        flightSuretyData.processFlightStatus(airline, flight, timestamp, statusCode);
     }
 
 
@@ -233,15 +220,8 @@ contract FlightSuretyApp {
     // For the response to be accepted, there must be a pending request that is open
     // and matches one of the three Indexes randomly assigned to the oracle at the
     // time of registration (i.e. uninvited oracles are not welcome)
-    function submitOracleResponse
-                        (
-                            uint8 index,
-                            address airline,
-                            string calldata flight,
-                            uint256 timestamp,
-                            uint8 statusCode
-                        )
-                        external
+    function submitOracleResponse(uint8 index, address airline, string calldata flight, uint256 timestamp, uint8 statusCode)
+        external
     {
         require((oracles[msg.sender].indexes[0] == index) || (oracles[msg.sender].indexes[1] == index) ||
             (oracles[msg.sender].indexes[2] == index), "Index does not match oracle request");

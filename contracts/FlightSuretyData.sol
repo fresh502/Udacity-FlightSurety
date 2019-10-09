@@ -228,6 +228,14 @@ contract FlightSuretyData {
         Flight storage target = flights[key];
         return (target.isRegistered, target.statusCode, target.canBuyInsurance);
     }
+
+    function processFlightStatus(address airlineAddress, string calldata flight, uint256 timestamp, uint8 statusCode) external
+        requireIsOperational
+        requireAuthorizedCaller
+    {
+        bytes32 key = getFlightKey(airlineAddress, flight, timestamp);
+        flights[key].statusCode = statusCode;
+    }
    /**
     * @dev Buy insurance for a flight
     *

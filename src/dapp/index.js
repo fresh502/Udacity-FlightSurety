@@ -48,7 +48,7 @@ import { flights } from './config.json';
 
             // Write transaction
             contract.fetchFlightStatus(flight, timestamp, (error, result) => {
-                display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
+                displayFetch('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
             });
         })
     
@@ -106,6 +106,19 @@ function displayFlightToFetch(title, description, results) {
     displayDiv.append(section);
 }
 
+function displayFetch(title, description, results) {
+    const displayDiv = DOM.elid("display-fetch");
+    const section = DOM.section();
+    section.appendChild(DOM.h2(title));
+    section.appendChild(DOM.h5(description));
+    results.map((result) => {
+        let row = section.appendChild(DOM.div({className:'row'}));
+        row.appendChild(DOM.div({className: 'col-sm-2 field'}, result.label));
+        row.appendChild(DOM.div({className: 'col-sm-8 field-value'}, result.error ? String(result.error) : String(result.value)));
+        section.appendChild(row);
+    })
+    displayDiv.append(section);
+}
 
 
 
