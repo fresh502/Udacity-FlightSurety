@@ -14,6 +14,7 @@ contract FlightSuretyData {
     function registerFlight(address airline, string calldata flight, uint256 timestamp) external;
     function purchaseInsurance(address passenger, address airline, string calldata flight, uint256 timestmap) external payable;
     function processFlightStatus(address airline, string calldata flight, uint256 timestamp, uint8 statusCode) external;
+    function creditInsurees(address airline, string calldata flight, uint256 timestamp) external;
 }
 
 /************************************************** */
@@ -241,31 +242,19 @@ contract FlightSuretyApp {
 
             // Handle flight status as appropriate
             processFlightStatus(airline, flight, timestamp, statusCode);
+
+            if (statusCode == STATUS_CODE_LATE_AIRLINE) {
+                flightSuretyData.creditInsurees(airline, flight, timestamp);
+            }
         }
     }
 
-
-    function getFlightKey
-                        (
-                            address airline,
-                            string memory flight,
-                            uint256 timestamp
-                        )
-                        internal
-                        pure
-                        returns(bytes32)
-    {
+    function getFlightKey(address airline, string memory flight, uint256 timestamp) internal pure returns(bytes32) {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
     }
 
     // Returns array of three non-duplicating integers from 0-9
-    function generateIndexes
-                            (
-                                address account
-                            )
-                            internal
-                            returns(uint8[3] memory)
-    {
+    function generateIndexes(address account) internal returns(uint8[3] memory) {
         uint8[3] memory indexes;
         indexes[0] = getRandomIndex(account);
 
@@ -283,13 +272,7 @@ contract FlightSuretyApp {
     }
 
     // Returns array of three non-duplicating integers from 0-9
-    function getRandomIndex
-                            (
-                                address account
-                            )
-                            internal
-                            returns (uint8)
-    {
+    function getRandomIndex(address account) internal returns (uint8) {
         uint8 maxValue = 10;
 
         // Pseudo random number...the incrementing nonce adds variation

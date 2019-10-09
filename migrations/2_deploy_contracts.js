@@ -20,6 +20,7 @@ module.exports = async (deployer, network, accounts) => {
                 timestamp: Math.floor(Date.now() / 1000) + (60 * 60 * 1000)
             }
         ]
+
         await deployer.deploy(FlightSuretyData, firstAirline)
         await deployer.deploy(FlightSuretyApp, FlightSuretyData.address)
 

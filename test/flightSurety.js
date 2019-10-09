@@ -1,7 +1,6 @@
 /* global contract, assert */
 
 const Test = require('../config/testConfig.js');
-// const BigNumber = require('bignumber.js');
 
 contract('Flight Surety Tests', async (accounts) => {
 
@@ -11,7 +10,7 @@ contract('Flight Surety Tests', async (accounts) => {
         await flightSuretyData.authorizeCaller(flightSuretyApp.address);
     });
 
-    const [, , secondAirline, thirdAirline, fourthAirline, fifthAirline, firstPassenger] = accounts;
+    const [, , secondAirline, thirdAirline, fourthAirline, fifthAirline] = accounts;
 
     const STATUS_CODE_UNKNOWN = 0;
 

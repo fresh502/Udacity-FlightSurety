@@ -37,12 +37,15 @@ contract FlightSuretyData {
     struct PassengerPayment {
         bool isAlreadyPurchased;
         uint256 amount;
+        bool isAlreadyCredited;
+        uint256 repayment;
     }
     struct FlightInsurance {
         bool haveHistory;
-        mapping(address => PassengerPayment) passengerPaymentHistory;
+        address[] passengers;
+        mapping(address => PassengerPayment) passengerPayments;
     }
-    mapping(bytes32 => FlightInsurance) flightInsurances;
+    mapping(bytes32 => FlightInsurance) private flightInsurances;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -233,9 +236,12 @@ contract FlightSuretyData {
         requireIsOperational
         requireAuthorizedCaller
     {
+        uint256 remainingGas = gasleft();
         bytes32 key = getFlightKey(airlineAddress, flight, timestamp);
         flights[key].statusCode = statusCode;
+        remainingGas = gasleft();
     }
+
    /**
     * @dev Buy insurance for a flight
     *
@@ -247,28 +253,42 @@ contract FlightSuretyData {
     {
         bytes32 key = getFlightKey(airlineAddress, flight, timestamp);
         if (flightInsurances[key].haveHistory) {
-            require(!flightInsurances[key].passengerPaymentHistory[passengerAddress].isAlreadyPurchased,
+            require(!flightInsurances[key].passengerPayments[passengerAddress].isAlreadyPurchased,
                 "This passenger alreadey purchase this flight insurance");
         } else {
             flightInsurances[key] = FlightInsurance({
-                haveHistory: true
+                haveHistory: true,
+                passengers: new address[](0)
             });
+            flightInsurances[key].passengers.push(passengerAddress);
         }
-        flightInsurances[key].passengerPaymentHistory[passengerAddress] = PassengerPayment({
+        flightInsurances[key].passengerPayments[passengerAddress] = PassengerPayment({
             isAlreadyPurchased: true,
-            amount: msg.value
+            amount: msg.value,
+            isAlreadyCredited: false,
+            repayment: 0
         });
     }
 
     /**
      *  @dev Credits payouts to insurees
     */
-    function creditInsurees
-                                (
-                                )
-                                external
-                                pure
+    function creditInsurees(address airlineAddress, string calldata flight, uint256 timestamp) external
+        requireIsOperational
+        requireAuthorizedCaller
     {
+        bytes32 key = getFlightKey(airlineAddress, flight, timestamp);
+        FlightInsurance storage flightInsurance = flightInsurances[key];
+        if (flightInsurance.haveHistory) {
+            for (uint i = 0; i < flightInsurance.passengers.length; i++) {
+                address passengerAddress = flightInsurance.passengers[i];
+                if (!flightInsurance.passengerPayments[passengerAddress].isAlreadyCredited) {
+                    uint256 amount = flightInsurance.passengerPayments[passengerAddress].amount;
+                    uint256 added = amount.div(2);
+                    flightInsurance.passengerPayments[passengerAddress].repayment = amount.add(added);
+                }
+            }
+        }
     }
 
     /**

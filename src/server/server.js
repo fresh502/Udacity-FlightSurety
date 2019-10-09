@@ -11,7 +11,7 @@ const oracles = [];
 (async () => {
     try {
         const accounts = await web3.eth.getAccounts();
-        for (let i = 10; i < 40; i++) {
+        for (let i = 10; i < 30; i++) {
             const gas = await flightSuretyApp.methods.registerOracle().estimateGas({ from: accounts[i], value: web3.utils.toWei('1', 'ether') });
             await flightSuretyApp.methods.registerOracle().send({ from: accounts[i], value: web3.utils.toWei('1', 'ether'), gas });
             const indexes = await flightSuretyApp.methods.getMyIndexes().call({ from: accounts[i] });
@@ -27,21 +27,27 @@ const oracles = [];
 function getStatusCode(airline, flight, timestamp) {
     // return random value
     // Unknown (0), On Time (10) or Late Airline (20), Late Weather (30), Late Technical (40), or Late Other (50)
-    console.log(`Get ${airline} ${flight} ${timestamp} status code`);
     const statusCodes = [0, 10, 20, 30, 40, 50];
-    return statusCodes[Math.floor(Math.random() * 11 % 6)]
+    return statusCodes[2];
+    // return statusCodes[Math.floor(Math.random() * 11 % 6)]
 }
 
 async function updateFlightStatus({ returnValues: { index, airline, flight, timestamp } }) {
-    console.log(`\nUpdate flight status ${index}, ${airline}, ${flight}, ${timestamp}`);
+    console.log(`\nUpdating flight status\n index: ${index}, airline: ${airline}, flight: ${flight}, timestamp: ${timestamp}`);
     
     try {
         await Promise.all(oracles
             .filter(oracle => oracle.indexes.includes(Number(index)))
-            .map(({ address }) => {
+            .map(async ({ address }) => {
                 const statusCode = getStatusCode(airline, flight, timestamp);
-                console.log(`Status Code: ${statusCode}`)
-                flightSuretyApp.methods.submitOracleResponse(index, airline, flight, timestamp, statusCode).send({ from: address })
+                // const gas = await flightSuretyApp.methods.submitOracleResponse(index, airline, flight, timestamp, statusCode)
+                //     .estimateGas({ from: address });
+
+                // When estimateGas(), gas returned is not enough. So I decided to assign gas directly
+                // Maximum gas usage is approximately 110000
+                const gas = 150000;
+                console.log(`Oracle Address: ${address}, Status Code: ${statusCode}, Gas: ${gas}`);
+                flightSuretyApp.methods.submitOracleResponse(index, airline, flight, timestamp, statusCode).send({ from: address, gas })
             })
         )
         console.log('Flight status is updated');
