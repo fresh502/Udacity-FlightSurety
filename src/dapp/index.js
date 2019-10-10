@@ -52,6 +52,15 @@ import { flights } from './config.json';
             });
         })
     
+        // Charge insurance
+        DOM.elid('charge-insurance').addEventListener('click', () => {
+            contract.chargeInsurance()
+                .then(() => displayChargeInsurance('Charge Insurance is completed'))
+                .catch(error => {
+                    alert('All repayment was already completed');
+                    console.error(error)
+                });
+        });
     });
 
 })();
@@ -120,6 +129,14 @@ function displayFetch(title, description, results) {
     displayDiv.append(section);
 }
 
+function displayChargeInsurance(title) {
+    const displayDiv = DOM.elid("charge-insurance-result");
+    const section = DOM.section();
+    section.appendChild(DOM.h2(title));
+    const row = section.appendChild(DOM.div({className:'row'}));
+    section.appendChild(row);
+    displayDiv.append(section);
+}
 
 
 

@@ -71,4 +71,11 @@ export default class Contract {
                 callback(error, payload);
             });
     }
+
+    chargeInsurance() {
+        const self = this;
+        return self.flightSuretyApp.methods
+            .chargeInsurance()
+            .send({ from: self.owner })
+    }
 }

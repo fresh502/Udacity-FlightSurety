@@ -28,8 +28,7 @@ function getStatusCode(airline, flight, timestamp) {
     // return random value
     // Unknown (0), On Time (10) or Late Airline (20), Late Weather (30), Late Technical (40), or Late Other (50)
     const statusCodes = [0, 10, 20, 30, 40, 50];
-    return statusCodes[2];
-    // return statusCodes[Math.floor(Math.random() * 11 % 6)]
+    return statusCodes[Math.floor(Math.random() * 11 % 6)]
 }
 
 async function updateFlightStatus({ returnValues: { index, airline, flight, timestamp } }) {

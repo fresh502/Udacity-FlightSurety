@@ -37,8 +37,6 @@ contract FlightSuretyData {
     struct PassengerPayment {
         bool isAlreadyPurchased;
         uint256 amount;
-        bool isAlreadyCredited;
-        uint256 repayment;
     }
     struct FlightInsurance {
         bool haveHistory;
@@ -47,6 +45,7 @@ contract FlightSuretyData {
     }
     mapping(bytes32 => FlightInsurance) private flightInsurances;
 
+    mapping(address => uint256) passengerRepayments;
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
@@ -264,9 +263,7 @@ contract FlightSuretyData {
         }
         flightInsurances[key].passengerPayments[passengerAddress] = PassengerPayment({
             isAlreadyPurchased: true,
-            amount: msg.value,
-            isAlreadyCredited: false,
-            repayment: 0
+            amount: msg.value
         });
     }
 
@@ -282,11 +279,9 @@ contract FlightSuretyData {
         if (flightInsurance.haveHistory) {
             for (uint i = 0; i < flightInsurance.passengers.length; i++) {
                 address passengerAddress = flightInsurance.passengers[i];
-                if (!flightInsurance.passengerPayments[passengerAddress].isAlreadyCredited) {
-                    uint256 amount = flightInsurance.passengerPayments[passengerAddress].amount;
-                    uint256 added = amount.div(2);
-                    flightInsurance.passengerPayments[passengerAddress].repayment = amount.add(added);
-                }
+                uint256 amount = flightInsurance.passengerPayments[passengerAddress].amount;
+                uint256 added = amount.div(2);
+                passengerRepayments[passengerAddress] = amount.add(added);
             }
         }
     }
@@ -295,12 +290,11 @@ contract FlightSuretyData {
      *  @dev Transfers eligible payout funds to insuree
      *
     */
-    function pay
-                            (
-                            )
-                            external
-                            pure
-    {
+    function pay(address payable passenger) external requireIsOperational requireAuthorizedCaller returns(uint256 repayment) {
+        repayment = passengerRepayments[passenger];
+        require(repayment > 0, "All repayment was already completed");
+        passengerRepayments[passenger] = 0;
+        passenger.transfer(repayment);
     }
 
    /**
@@ -308,12 +302,7 @@ contract FlightSuretyData {
     *      resulting in insurance payouts, the contract should be self-sustaining
     *
     */
-    function fund
-                            (
-                            )
-                            public
-                            payable
-    {
+    function fund() public payable {
     }
 
     function getFlightKey(address airlineAddress, string memory flight, uint256 timestamp) internal pure returns(bytes32) {
@@ -324,10 +313,7 @@ contract FlightSuretyData {
     * @dev Fallback function for funding smart contract.
     *
     */
-    function()
-                            external
-                            payable
-    {
+    function() external payable {
         fund();
     }
 }

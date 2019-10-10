@@ -15,6 +15,7 @@ contract FlightSuretyData {
     function purchaseInsurance(address passenger, address airline, string calldata flight, uint256 timestmap) external payable;
     function processFlightStatus(address airline, string calldata flight, uint256 timestamp, uint8 statusCode) external;
     function creditInsurees(address airline, string calldata flight, uint256 timestamp) external;
+    function pay(address passneger) external returns(uint256);
 }
 
 /************************************************** */
@@ -247,6 +248,10 @@ contract FlightSuretyApp {
                 flightSuretyData.creditInsurees(airline, flight, timestamp);
             }
         }
+    }
+
+    function chargeInsurance() external returns(uint256 repayment) {
+        repayment = flightSuretyData.pay(msg.sender);
     }
 
     function getFlightKey(address airline, string memory flight, uint256 timestamp) internal pure returns(bytes32) {
